@@ -37,7 +37,7 @@ module Main (_ : Mirage_random.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) 
     | Message { sender; message=_ } when String.equal sender me ->
       write me oc
     | Message { sender; message } ->
-      let* () = oc (Printf.ksprintf Cstruct.of_string "%s: %s\r\n" sender message) in
+      let* () = oc (Printf.ksprintf Cstruct.of_string "\x07%s: %s\r\n" sender message) in
       write me oc
     | Join username ->
       let* () = oc (Printf.ksprintf Cstruct.of_string "--> %s joined!\r\n" username) in
@@ -49,6 +49,7 @@ module Main (_ : Mirage_random.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) 
 
   let chat flow stop username ic oc =
     Lwt_condition.broadcast c (Join username);
+    let* () = oc (Cstruct.of_string (Printf.sprintf "Hello, %s!\r\n" username)) in
     let* () =
       Lwt.pick [
         read username ic;
@@ -63,10 +64,10 @@ module Main (_ : Mirage_random.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) 
     | Ssh.Pty_req _ | Ssh.Pty_set _ | Ssh.Set_env _ ->
       Lwt.return_unit
     | Ssh.Channel { cmd; ic; oc; ec; } ->
-      let* () = oc (Cstruct.of_string (Printf.sprintf "Hello, %s!\r\n" username)) in
       chat flow stop username ic oc
     | Ssh.Shell { ic; oc; ec; } ->
-      let* () = oc (Cstruct.of_string (Printf.sprintf "Hello, %s!\r\n" username)) in
+      let* () = ec (Cstruct.of_string "Banawá-chat does currently not work well with TTY.\r\n\
+                                       Consider reconnecting without tty (ssh -T)\r\n") in
       chat flow stop username ic oc
 
   let start _random _time _mtime stack =
