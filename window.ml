@@ -4,10 +4,12 @@ open Notty
 type t = { w : int; h : int; p : int }
 
 let render_message ~width ~width_nicknames msg =
+  (* (* FIXME: split doesn't work *)
   let width_message =
     max 1 (width - width_nicknames - 1)
   in
-  let message = Message.split_at ~len:width_message msg in
+  let message = Message.split_at ~len:width_message msg in *)
+  let message = [Message.message msg] in
   let color = A.white in
   let rest =
     List.map @@ fun msg ->

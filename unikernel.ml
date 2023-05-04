@@ -10,48 +10,8 @@ module Main (_ : Mirage_random.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) 
   module Ssh = Banawa_mirage.Make(Stack.TCP)(T)(M)
   module Nottui' = Nottui_mirage.Make(T)
 
-  let c : Message.t Lwt_condition.t = Lwt_condition.create ()
-
-  let read username ic =
-    let rec loop () =
-      let* r = ic () in
-      match r with
-      | `Data d ->
-        let message = Cstruct.to_string d in
-        if String.equal message "" then
-          loop ()
-        else
-          let m = Message.make ~nickname:username (String.trim message) in
-          Lwt_condition.broadcast c m;
-          loop ()
-      | `Eof ->
-        Lwt_condition.broadcast c (Message.make ~nickname:"<--" username);
-        Lwt.return_unit
-    in
-    loop ()
-
-  let rec write me oc =
-    let* m = Lwt_condition.wait c in
-    if String.equal (Message.nickname m) me then
-      write me oc
-    else
-      let* () =
-        oc (Printf.ksprintf Cstruct.of_string "\x07%s: %s\r\n"
-              (Message.nickname m) (Message.message m))
-      in
-      write me oc
-
-  let chat flow stop username ic oc =
-    Lwt_condition.broadcast c (Message.make ~nickname:"-->" username);
-    let* () = oc (Cstruct.of_string (Printf.sprintf "Hello, %s!\r\n" username)) in
-    let* () =
-      Lwt.pick [
-        read username ic;
-        write username oc;
-      ]
-    in
-    let* () = Lwt_switch.turn_off stop in
-    Stack.TCP.close flow
+  let buffer = Rb.make 1024
+  let buffer_var = Lwd.var buffer
 
   let callback flow stop t ~username r =
     match r with
@@ -63,8 +23,14 @@ module Main (_ : Mirage_random.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) 
         (Int32.to_int width, Int32.to_int height);
       Lwt.return_unit
     | Ssh.Set_env _ -> Lwt.return_unit
-    | Ssh.Channel { cmd=_; ic; oc; ec=_ } ->
-      chat flow stop username ic oc
+    | Ssh.Channel { cmd; ic=_; oc=_; ec } ->
+      let* () =
+        ec (Printf.ksprintf Cstruct.of_string
+              "Thanks for logging in! Currently, %S is unsupported\r\n\
+               Check back later." cmd)
+      in
+      let* () = Lwt_switch.turn_off stop in
+      Stack.TCP.close flow
     | Ssh.Shell { ic; oc; ec=_ } ->
       let ic () =
         let+ r = ic () in
@@ -73,25 +39,19 @@ module Main (_ : Mirage_random.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) 
         | `Eof -> `Eof
       in
       let cursor = Lwd.var (0, 0) in
-      let message m = Lwt_condition.broadcast c (Message.make ~nickname:username m) in
-      let buffer = Rb.make 100 in
+      let message m =
+        let msg = Message.make ~nickname:username m in
+        Lwd.set buffer_var (Rb.push buffer msg; buffer);
+      in
       Rb.push buffer (Message.msgf "Welcome, %s!" username);
-      let buffer_var = Lwd.var buffer in
       let ui =
         let ( let* ) x f = Lwd.bind x ~f in
         let* prompt = Prompt.make ~message cursor in
         let* window = Window.make buffer_var in
         Lwd.return (Nottui.Ui.vcat [window; prompt])
       in
-      let rec handle_receive () =
-        let* msg = Lwt_condition.wait c in
-        Lwd.set buffer_var (Rb.push buffer msg; buffer);
-        handle_receive ()
-      in
-      Lwt_condition.broadcast c (Message.make ~nickname:"-->" username);
       Lwt.join [
         Nottui'.run ~cursor (t.size, t.sigwinch) ui ic oc;
-        handle_receive ();
       ]
 
   let start _random _time _mtime stack =
