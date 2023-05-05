@@ -12,5 +12,5 @@ The [awa-ssh](https://github.com/mirage/awa-ssh) was [forked](https://github.com
 During development of this application three bugs were discovered, and two of them fixed.
 See https://github.com/mirage/awa-ssh/pull/55, https://github.com/mirage/awa-ssh/pull/56 and https://github.com/mirage/awa-ssh/issues/57.
 
-Thanks a lot to @dinosaure who provided code that I could steal for the nice terminal user interface and helped me debug many things.
-Thanks as well to @wyn who helped me test and debug RSA authentication from newer ssh clients.
+Thanks a lot to [@dinosaure](https://github.com/dinosaure) who provided code that I could steal for the nice terminal user interface and helped me debug many things.
+Thanks as well to [@wyn](https://github.com/wyn) who helped me test and debug RSA authentication from newer ssh clients.
