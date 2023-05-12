@@ -43,10 +43,15 @@ module Main (_ : Mirage_random.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) 
         let msg = Message.make ~nickname:username m in
         Lwd.set buffer_var (Rb.push buffer msg; buffer);
       in
-      Rb.push buffer (Message.msgf "Welcome, %s!" username);
+      let quit () =
+        let msg = Message.msgf "%s tried to quit, but it is not implemented" username in
+        Lwd.set buffer_var (Rb.push buffer msg; buffer);
+      in
+      Lwd.set buffer_var
+        (Rb.push buffer (Message.msgf "Welcome, %s!" username); buffer);
       let ui =
         let ( let* ) x f = Lwd.bind x ~f in
-        let* prompt = Prompt.make ~message cursor in
+        let* prompt = Prompt.make ~quit ~message cursor in
         let* window = Window.make buffer_var in
         Lwd.return (Nottui.Ui.vcat [window; prompt])
       in

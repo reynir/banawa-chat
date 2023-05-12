@@ -2,13 +2,14 @@ open Nottui
 open Notty
 
 type t = {
+  quit : unit -> unit;
   message : string -> unit;
   cursor : Rp.Cursor.cursor;
 }
 
-let make message =
+let make quit message =
   let cursor = Rp.Cursor.create Rp.empty 0 in
-  { message; cursor }
+  { quit; message; cursor }
 
 let map_cursor f state =
   { state with cursor = f state.cursor }
@@ -104,13 +105,16 @@ let handler ~hook state = function
     state.message msg;
     hook { state with cursor = Rp.Cursor.create Rp.empty 0 };
     `Handled
+  | `ASCII ('C'..'D'), [`Ctrl] ->
+    state.quit ();
+    `Handled
   | _ -> `Unhandled
 
-let make ~message cursor =
+let make ~quit ~message cursor =
   let ( let* ) x f = Lwd.bind x ~f in
   let ( let+ ) x f = Lwd.map ~f x in
   let ( and+ ) = Lwd.map2 ~f:(fun x y -> (x, y)) in
-  let state = Lwd.var (make message) in
+  let state = Lwd.var (make quit message) in
   let position = Lwd.var (0, 0) in
   let hook = Lwd.set state in
   let update_prompt state (y, w) =
