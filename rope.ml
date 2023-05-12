@@ -162,7 +162,7 @@ module Make (S : STRING) (C : CONTROL) = struct
     if len = 0 then empty else mksub ofs stop t
 
   let rec safe_iter_range f i n = function
-    | Str (s, ofs, _) -> S.iter_range f s (ofs + i) n
+    | Str (s, ofs, _) -> S.iter_range f s (max 0 (ofs + i)) n
     | App (t1, t2, _, _) ->
         let n1 = length t1 in
         if i + n <= n1 then safe_iter_range f i n t1
