@@ -51,27 +51,22 @@ let render { w; h } msgs =
   done;
   Ui.atom (I.vsnap ~align:`Bottom h !image)
 
-let handler ~hook:_ _state _buffer _key = `Unhandled
-
 let make w =
   let ( let* ) x f = Lwd.bind ~f x in
   let ( let+ ) x f = Lwd.map ~f x in
   let ( and+ ) = Lwd.map2 ~f:(fun x y -> (x, y)) in
 
-  let state = Lwd.var { w = 0; h = 0; p = 0 } in
-  let hook = Lwd.set state in
+  let state = Lwd.var { w = 0; h = 0 } in
 
   let* document =
     let+ state = Lwd.get state
     and+ buffer = Lwd.get w in
-    Ui.keyboard_area
-      (handler ~hook state buffer)
-      (render state buffer)
+    render state buffer
   in
 
   let update_size ~w ~h =
     let state' = Lwd.peek state in
-    if state'.w <> w || state'.h <> h then Lwd.set state { state' with w; h }
+    if state'.w <> w || state'.h <> h then Lwd.set state { w; h }
   in
 
   let measure_size document =

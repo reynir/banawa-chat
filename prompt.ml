@@ -64,7 +64,9 @@ module User_prompt = struct
     let text, position =
       Utils.render_cursor ~width:(max 0 (w - 3)) state.cursor
     in
-    Lwd.set cursor (position + 1, y);
+    let new_cursor = (position + 1, y) in
+    if new_cursor <> (Lwd.peek cursor) then
+      Lwd.set cursor new_cursor;
     I.hcat [ I.char A.empty ' ' 1 1 ; text ]
 end
 
@@ -116,7 +118,10 @@ let make ~quit ~message cursor =
   let ( and+ ) = Lwd.map2 ~f:(fun x y -> (x, y)) in
   let state = Lwd.var (make quit message) in
   let position = Lwd.var (0, 0) in
-  let hook = Lwd.set state in
+  let hook state' =
+    if (Lwd.peek state).cursor != state'.cursor then
+      Lwd.set state state'
+  in
   let update_prompt state (y, w) =
     let user = User_prompt.render ~cursor ~y ~w state in
     Ui.keyboard_area (handler ~hook state) (Ui.atom user)
