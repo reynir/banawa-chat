@@ -1,7 +1,7 @@
 open Nottui
 open Notty
 
-type t = { w : int; h : int; p : int }
+type t = { w : int; h : int; }
 
 let render_message ~width ~width_nicknames msg =
   (* (* FIXME: split doesn't work *)
@@ -9,6 +9,7 @@ let render_message ~width ~width_nicknames msg =
     max 1 (width - width_nicknames - 1)
   in
   let message = Message.split_at ~len:width_message msg in *)
+  let _ = width in
   let message = [Message.message msg] in
   let color = A.white in
   let rest =
@@ -33,8 +34,8 @@ let width_nicknames msgs =
   let f msg acc = max (String.length (Message.nickname msg)) acc in
   Rb.iter ~f msgs 0
  
-let render { w; h; p } msgs =
-  let idx = ref (Rb.length msgs - 1 - p) in
+let render { w; h } msgs =
+  let idx = ref (Rb.length msgs - 1) in
   let image = ref I.empty in
   let message = ref I.empty in
   let width_nicknames = width_nicknames msgs in
