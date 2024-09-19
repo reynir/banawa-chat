@@ -6,7 +6,18 @@ type state =
   ; mutable size : int * int
   }
 
-module Main (_ : Mirage_random.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) (Stack : Tcpip.Stack.V4V6) = struct
+module K = struct
+  open Cmdliner
+  let port =
+    let doc = Arg.info ~doc:"The TCP port for listening for SSH connections" ["port"] in
+    Arg.(value & opt int 22 doc)
+
+  let hostkey =
+    let doc = Arg.info ~doc:"SSH host key" ["hostkey"] in
+    Arg.(required & opt (some string) None doc)
+end
+
+module Main (_ : Mirage_crypto_rng_mirage.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) (Stack : Tcpip.Stack.V4V6) = struct
   module Ssh = Banawa_mirage.Make(Stack.TCP)(T)(M)
   module Nottui' = Nottui_mirage.Make(T)
 
@@ -59,17 +70,14 @@ module Main (_ : Mirage_random.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) 
         Nottui'.run ~cursor (t.size, t.sigwinch) ui ic oc;
       ]
 
-  let start _random _time _mtime stack =
-    let port = Key_gen.port () in
-    let user_db = Banawa.Auth.Db.create 20 in
-    let hostkey = Key_gen.hostkey () in
+  let start _random _time _mtime stack port hostkey =
     let hostkey =
-      match Banawa.Keys.of_string hostkey with
+      match Awa.Keys.of_string hostkey with
       | Ok k -> k
       | Error `Msg e ->
         Logs.err (fun m -> m "%s" e); exit 1
     in
-    let server, msgs = Banawa.Server.make hostkey user_db in
+    let server, msgs = Awa.Server.make hostkey in
     Stack.TCP.listen (Stack.tcp stack) ~port
       (fun flow ->
          let stop = Lwt_switch.create () in
