@@ -2,8 +2,8 @@ let src = Logs.Src.create "nottui.mirage"
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
-module Make (Time : Mirage_time.S) = struct
-  open Notty_mirage.Make (Time)
+module Make = struct
+  open Notty_mirage.Make
 
   let copy_until quit ~f input =
     let quit = Lwt.map (fun () -> None) quit in

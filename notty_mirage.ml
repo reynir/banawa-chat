@@ -7,7 +7,7 @@ open Notty
 let ( </> ) a b = Lwt.pick [ a >|= Either.left; b >|= Either.right ]
 let ( <??> ) a b = a >|= Either.left <?> (b >|= Either.right)
 
-module Make (Time : Mirage_time.S) = struct
+module Make = struct
   module Lwt_condition = struct
     include Lwt_condition
 
@@ -24,7 +24,7 @@ module Make (Time : Mirage_time.S) = struct
     let unburst ~timeout v =
       let v' = create () in
       let rec delay x =
-        Time.sleep_ns timeout </> wait v >>= function
+        Mirage_sleep.ns timeout </> wait v >>= function
         | Either.Left () ->
             broadcast v' x;
             start ()

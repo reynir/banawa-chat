@@ -17,9 +17,9 @@ module K = struct
     Arg.(required & opt (some string) None doc)
 end
 
-module Main (_ : Mirage_crypto_rng_mirage.S) (T : Mirage_time.S) (M : Mirage_clock.MCLOCK) (Stack : Tcpip.Stack.V4V6) = struct
-  module Ssh = Banawa_mirage.Make(Stack.TCP)(T)(M)
-  module Nottui' = Nottui_mirage.Make(T)
+module Main (Stack : Tcpip.Stack.V4V6) = struct
+  module Ssh = Banawa_mirage.Make(Stack.TCP)
+  module Nottui' = Nottui_mirage.Make
 
   let buffer = Rb.make 1024
   let buffer_var = Lwd.var buffer
@@ -70,7 +70,7 @@ module Main (_ : Mirage_crypto_rng_mirage.S) (T : Mirage_time.S) (M : Mirage_clo
         Nottui'.run ~cursor (t.size, t.sigwinch) ui ic oc;
       ]
 
-  let start _random _time _mtime stack port hostkey =
+  let start stack port hostkey =
     let hostkey =
       match Awa.Keys.of_string hostkey with
       | Ok k -> k
@@ -87,7 +87,8 @@ module Main (_ : Mirage_crypto_rng_mirage.S) (T : Mirage_time.S) (M : Mirage_clo
            ; size = (0, 0)
            }
          in
-         let _ssh = Ssh.spawn_server ~stop server msgs flow (callback flow stop state) in
+         let db = Banawa_mirage.Auth.empty 42 in
+         let _ssh = Ssh.spawn_server ~stop server db msgs flow (callback flow stop state) in
          Lwt.return_unit);
     fst (Lwt.wait ())
 end
