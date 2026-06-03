@@ -1,14 +1,17 @@
-type ('c, 'a) t =
-  { arr : 'a option array; mutable rd_cursor : int; mutable wr_cursor : int }
+type ('c, 'a) t = {
+    arr: 'a option array
+  ; mutable rd_cursor: int
+  ; mutable wr_cursor: int
+}
   constraint 'c = < .. >
 
-type ro = < rd : unit >
-type wo = < wr : unit >
-type rdwr = < rd : unit ; wr : unit >
-type 'a rd = < rd : unit ; .. > as 'a
-type 'a wr = < wr : unit ; .. > as 'a
+type ro = < rd: unit >
+type wo = < wr: unit >
+type rdwr = < rd: unit ; wr: unit >
+type 'a rd = < rd: unit ; .. > as 'a
+type 'a wr = < wr: unit ; .. > as 'a
 
-let make len = { arr = Array.make len None; rd_cursor = 0; wr_cursor = 0 }
+let make len = { arr= Array.make len None; rd_cursor= 0; wr_cursor= 0 }
 
 exception Full
 exception Empty

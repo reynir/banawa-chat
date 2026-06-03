@@ -6,8 +6,7 @@ include Rope.Make_array (struct
     fun uchar ->
       Uutf.Buffer.add_utf_8 buf uchar;
       let res = Buffer.contents buf in
-      Buffer.clear buf;
-      res
+      Buffer.clear buf; res
 
   let print =
     Fmt.if_utf_8
