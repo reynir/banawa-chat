@@ -132,4 +132,4 @@ let make ~quit ~message cursor =
     let+ state = Lwd.get state and+ position = Lwd.get position in
     update_prompt state position
   in
-  Lwd.return (Ui.transient_sensor update_position prompts)
+  Lwd.return (Ui.permanent_sensor update_position prompts)

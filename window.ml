@@ -55,6 +55,6 @@ let make w =
     if state'.w <> w || state'.h <> h then Lwd.set state { w; h }
   in
   let measure_size document =
-    Ui.size_sensor update_size (Ui.resize ~sh:1 document)
+    Ui.size_sensor update_size (Ui.resize ~w:0 ~h:0 ~sw:1 ~sh:1 document)
   in
   Lwd.return (measure_size document)
