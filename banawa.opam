@@ -16,8 +16,11 @@ depends: [
   "ca-certs-nss"
   "mirage-ptime"
   "zarith"
-  "awa"
-  "mnottui"
+  "awa" {>= "0.6.1"}
+  "mnet-ssh" {>= "0.0.3"}
+  "miou" {>= "0.7.0"}
+  "mnotty" {>= "0.0.2"}
+  "mnottui" {>= "0.0.2"}
   "tls"
 ]
 build: [
@@ -25,11 +28,5 @@ build: [
 ]
 synopsis: ""
 pin-depends: [
-  [ "awa.dev" "git+https://github.com/mirage/awa-ssh.git#fcf21b86098efc6b5e2c4718ba74d49b56386101" ]
-  [ "mnet.dev" "git+https://github.com/robur-coop/mnet.git#cb23cbbd7f568c239228ccfb65704b470470cf3e" ]
-  [ "mnet-ssh.dev" "git+https://github.com/robur-coop/mnet.git#cb23cbbd7f568c239228ccfb65704b470470cf3e" ]
-  [ "mnotty.dev" "git+https://github.com/robur-coop/notty-miou.git#dbbd647c36c7d6111106df22d2b13f67ae224b86" ]
-  [ "mnottui.dev" "git+https://github.com/robur-coop/notty-miou.git#dbbd647c36c7d6111106df22d2b13f67ae224b86" ]
   [ "zarith.dev" "git+https://github.com/mirage/Zarith.git#df8969d9bb95cffca13e31a615189ab27ada0684" ]
-  [ "miou.dev" "git+https://github.com/robur-coop/miou.git#749518ce43476d010e1b44e01e448417e80f91b0" ]
 ]
