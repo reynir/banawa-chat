@@ -20,11 +20,9 @@ let room = Rb.make 1024
 let vroom = Lwd.var room
 
 let handler _flow client username = function
-  | Mnet_ssh.Pty_req { width; height; _ } ->
-      client.size <- (Int32.to_int width, Int32.to_int height)
+  | Mnet_ssh.Pty_req { width; height; _ } -> client.size <- (width, height)
   | Pty_set { width; height; _ } ->
-      Mnotty.Signal.signal client.sigwinch
-        (Int32.to_int width, Int32.to_int height)
+      Mnotty.Signal.signal client.sigwinch (width, height)
   | Set_env _ -> ()
   | Shell { ic; oc; ec= _ } ->
       let ic () =
@@ -58,10 +56,6 @@ let handler _flow client username = function
       Mnottui.run ~stop ~cursor (client.size, client.sigwinch) ui ic oc
   | Channel _ -> assert false
 
-let devices ?gateway ~ipv6 cidr =
-  let open Mkernel in
-  [ rng; Mnet.stack ~name:"service" ?gateway ~ipv6 cidr ]
-
 let rec clean_up orphans =
   match Miou.care orphans with
   | None | Some None -> ()
@@ -89,33 +83,46 @@ module Users = struct
   let verify lru user auth =
     match (Lru.find user lru, auth) with
     | None, Awa.Server.Pubkey pkauth ->
-        if Awa.Server.verify_pubkeyauth ~user pkauth then begin
+        let { Awa.Server.pubkey; session_id; service; sig_alg; signed } =
+          pkauth
+        in
+        if
+          Awa.Auth.verify_signature user sig_alg pubkey session_id service
+            signed
+        then begin
           Lru.add user pkauth.pubkey lru;
           Lru.trim lru;
           true
         end
         else false
     | _, Awa.Server.Password _ -> false
-    | Some pubkey, Awa.Server.Pubkey pkauth ->
+    | Some pubkey', Awa.Server.Pubkey pkauth ->
+        let { Awa.Server.pubkey; session_id; service; sig_alg; signed } =
+          pkauth
+        in
         let result =
-          Awa.Server.verify_pubkeyauth ~user pkauth
-          && Awa.Hostkey.pub_eq pubkey pkauth.pubkey
+          Awa.Auth.verify_signature user sig_alg pubkey session_id service
+            signed
+          && Awa.Hostkey.pub_eq pubkey' pubkey
         in
         if result then Lru.promote user lru;
         result
 end
 
-let run _ (cidr, gateway, ipv6) priv =
-  Mkernel.run (devices ?gateway ~ipv6 cidr) @@ fun rng (daemon, tcp, _udp) () ->
+let run _ stack priv =
+  Mkernel.run [ rng; stack ] @@ fun rng (daemon, tcp, _udp) () ->
   let@ () = fun () -> Mirage_crypto_rng_mkernel.kill rng in
   let@ () = fun () -> Mnet.kill daemon in
   let db = Lru.create ~random:true 0x7ff in
   let db = Mnet_ssh.Database (db, (module Users)) in
   let rec go listen orphans =
     clean_up orphans;
-    let flow = Mnet.TCP.accept tcp listen in
+    let flow = Mnet.TCP.accept ~kind:Mnet.TCP.Direct tcp listen in
     let _ =
       Miou.async ~orphans @@ fun () ->
+      let finally = Mnet.TCP.close in
+      let resource = Miou.Ownership.create ~finally flow in
+      Miou.Ownership.own resource;
       let client =
         {
           env= Hashtbl.create 0x1
@@ -124,9 +131,8 @@ let run _ (cidr, gateway, ipv6) priv =
         }
       in
       let handler = handler flow client in
-      let@ () = fun () -> try Mnet.TCP.close flow with _ -> () in
-      (* TODO(dinosaure): we can probably use [Miou.Ownership]. *)
-      ignore (Mnet_ssh.server db priv flow handler)
+      ignore (Mnet_ssh.server db priv flow handler);
+      Miou.Ownership.release resource
     in
     go listen orphans
   in
@@ -219,7 +225,7 @@ let priv =
 
 let term =
   let open Term in
-  const run $ setup_logs $ Mnet_cli.setup $ priv
+  const run $ setup_logs $ Mnet_cli.setup "service" $ priv
 
 let cmd =
   let info = Cmd.info "banawa" in
