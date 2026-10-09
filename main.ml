@@ -81,30 +81,17 @@ module Users = struct
   type t = Lru.t
 
   let verify lru user auth =
+    (* Since awa>=0.7.0 pubkey signature verification is done before emitting
+       the userauth - so we don't need to verify the signature again. *)
     match (Lru.find user lru, auth) with
     | None, Awa.Server.Pubkey pkauth ->
-        let { Awa.Server.pubkey; session_id; service; sig_alg; signed } =
-          pkauth
-        in
-        if
-          Awa.Auth.verify_signature user sig_alg pubkey session_id service
-            signed
-        then begin
-          Lru.add user pkauth.pubkey lru;
-          Lru.trim lru;
-          true
-        end
-        else false
+        Lru.add user pkauth.pubkey lru;
+        Lru.trim lru;
+        true
     | _, Awa.Server.Password _ -> false
     | Some pubkey', Awa.Server.Pubkey pkauth ->
-        let { Awa.Server.pubkey; session_id; service; sig_alg; signed } =
-          pkauth
-        in
-        let result =
-          Awa.Auth.verify_signature user sig_alg pubkey session_id service
-            signed
-          && Awa.Hostkey.pub_eq pubkey' pubkey
-        in
+        let { Awa.Server.pubkey; _ } = pkauth in
+        let result = Awa.Hostkey.pub_eq pubkey' pubkey in
         if result then Lru.promote user lru;
         result
 end

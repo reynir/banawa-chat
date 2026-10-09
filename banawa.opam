@@ -16,7 +16,7 @@ depends: [
   "ca-certs-nss"
   "mirage-ptime"
   "zarith"
-  "awa" {>= "0.6.1"}
+  "awa" {>= "0.7.0"}
   "mnet-ssh" {>= "0.0.3"}
   "miou" {>= "0.7.0"}
   "mnotty" {>= "0.0.2"}
