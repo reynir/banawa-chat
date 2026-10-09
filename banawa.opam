@@ -22,6 +22,9 @@ depends: [
   "mnotty" {>= "0.0.2"}
   "mnottui" {>= "0.0.2"}
   "tls"
+  "mnet-cli"
+  "mirage-crypto-rng-mkernel"
+  "re"
 ]
 build: [
   [make "all"]
