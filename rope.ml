@@ -177,9 +177,7 @@ module Make (S : STRING) (C : CONTROL) = struct
 
   let rec print fmt = function
     | Str (s, ofs, len) -> S.print fmt (S.sub s ofs len) (* TODO: improve? *)
-    | App (t1, t2, _, _) ->
-        print fmt t1;
-        print fmt t2
+    | App (t1, t2, _, _) -> print fmt t1; print fmt t2
 
   (* assumption: 0 <= i < len t *)
   let rec set_rec i c = function
@@ -243,12 +241,12 @@ module Make (S : STRING) (C : CONTROL) = struct
   module Cursor = struct
     type path = Top | Left of path * t | Right of t * path
 
-    type cursor =
-      { rpos : int (* position of the cursor relative to the current leaf *)
-      ; lofs : int (* offset of the current leaf wrt whole rope *)
-      ; leaf : t (* the leaf i.e. Str (s,ofs,len) *)
-      ; path : path (* context = zipper *)
-      }
+    type cursor = {
+        rpos: int (* position of the cursor relative to the current leaf *)
+      ; lofs: int (* offset of the current leaf wrt whole rope *)
+      ; leaf: t (* the leaf i.e. Str (s,ofs,len) *)
+      ; path: path (* context = zipper *)
+    }
     (* INVARIANT: 0 <= rpos <= len
                   rpos = len iff we are located at the end of the whole rope *)
     (* TODO(dinosaure): prove that [leaf] contains only a concrete [Str] value. *)
@@ -267,7 +265,7 @@ module Make (S : STRING) (C : CONTROL) = struct
       let rec zip lofs p = function
         | Str (_, _, len) as leaf ->
             assert (lofs <= i && i <= lofs + len);
-            { rpos = i - lofs; lofs; leaf; path = p }
+            { rpos= i - lofs; lofs; leaf; path= p }
         | App (t1, t2, _, _) ->
             let n1 = length t1 in
             if i < lofs + n1 then zip lofs (Left (p, t2)) t1
@@ -293,19 +291,20 @@ module Make (S : STRING) (C : CONTROL) = struct
           let leaf = Str (S.singleton x, 0, 1) in
           if i = 0 then
             if len = 1 then { c with leaf }
-            else
-              { c with leaf; path = Left (c.path, Str (s, ofs + 1, len - 1)) }
+            else { c with leaf; path= Left (c.path, Str (s, ofs + 1, len - 1)) }
           else if i = len - 1 then
-            { lofs = c.lofs + len - 1
-            ; rpos = 0
+            {
+              lofs= c.lofs + len - 1
+            ; rpos= 0
             ; leaf
-            ; path = Right (Str (s, ofs, len - 1), c.path)
+            ; path= Right (Str (s, ofs, len - 1), c.path)
             }
           else
-            { lofs = c.lofs + i
-            ; rpos = 0
+            {
+              lofs= c.lofs + i
+            ; rpos= 0
             ; leaf
-            ; path =
+            ; path=
                 Left
                   ( Right (Str (s, ofs, i), c.path)
                   , Str (s, ofs + i + 1, len - i - 1) )
@@ -325,19 +324,22 @@ module Make (S : STRING) (C : CONTROL) = struct
           let i = c.rpos in
           let cr = create r 0 in
           if i = 0 then
-            { cr with
-              lofs = c.lofs
-            ; path = concat_path cr.path (Left (c.path, c.leaf))
+            {
+              cr with
+              lofs= c.lofs
+            ; path= concat_path cr.path (Left (c.path, c.leaf))
             }
           else if i = len then
-            { cr with
-              lofs = c.lofs + len
-            ; path = concat_path cr.path (Right (c.leaf, c.path))
+            {
+              cr with
+              lofs= c.lofs + len
+            ; path= concat_path cr.path (Right (c.leaf, c.path))
             }
           else
-            { cr with
-              lofs = c.lofs + i
-            ; path =
+            {
+              cr with
+              lofs= c.lofs + i
+            ; path=
                 concat_path cr.path
                   (Left
                      (Right (Str (s, ofs, i), c.path), Str (s, ofs + i, len - i)))
@@ -351,7 +353,7 @@ module Make (S : STRING) (C : CONTROL) = struct
     let next_leaf c =
       let lofs = c.lofs + length c.leaf in
       let rec down p = function
-        | Str _ as leaf -> { rpos = 0; lofs; leaf; path = p }
+        | Str _ as leaf -> { rpos= 0; lofs; leaf; path= p }
         | App (t1, t2, _, _) -> down (Left (p, t2)) t1
       in
       let rec up t = function
@@ -365,9 +367,9 @@ module Make (S : STRING) (C : CONTROL) = struct
       match c.leaf with
       | Str (_, _, len) ->
           let rpos' = c.rpos + n in
-          if rpos' < len then { c with rpos = rpos' }
+          if rpos' < len then { c with rpos= rpos' }
           else if rpos' = len then
-            try next_leaf c with Out_of_bounds -> { c with rpos = rpos' }
+            try next_leaf c with Out_of_bounds -> { c with rpos= rpos' }
           else
             (* rpos' > len *)
             let c = next_leaf c in
@@ -384,7 +386,7 @@ module Make (S : STRING) (C : CONTROL) = struct
     let prev_leaf c =
       let rec down p = function
         | Str (_, _, len) as leaf ->
-            { rpos = len; lofs = c.lofs - len; leaf; path = p }
+            { rpos= len; lofs= c.lofs - len; leaf; path= p }
         | App (t1, t2, _, _) -> down (Right (t1, p)) t2
       in
       let rec up t = function
@@ -398,7 +400,7 @@ module Make (S : STRING) (C : CONTROL) = struct
       match c.leaf with
       | Str (_, _, _len) ->
           let rpos' = c.rpos - n in
-          if rpos' >= 0 then { c with rpos = rpos' }
+          if rpos' >= 0 then { c with rpos= rpos' }
           else
             (* rpos' < 0 *)
             let c = prev_leaf c in
@@ -415,7 +417,7 @@ module Make (S : STRING) (C : CONTROL) = struct
       else move_backward_rec c (-n)
 
     let rec _leftmost lofs p = function
-      | Str _ as leaf -> { rpos = 0; lofs; leaf; path = p }
+      | Str _ as leaf -> { rpos= 0; lofs; leaf; path= p }
       | App (t1, t2, _, _) -> _leftmost lofs (Left (p, t2)) t1
 
     (* XXX(dinosaure): the code does not work when we
@@ -435,25 +437,26 @@ module Make (S : STRING) (C : CONTROL) = struct
           if i = 0 then
             if len = 1 then
               match c.path with
-              | Top -> { c with leaf = empty }
+              | Top -> { c with leaf= empty }
               | Left (p, t) ->
                   (* leftmost c.lofs p r *)
-                  let r = to_rope { c with leaf = t; path = p } in
+                  let r = to_rope { c with leaf= t; path= p } in
                   create r c.lofs
               | Right (t, p) ->
                   (* TODO: improve *)
-                  let r = to_rope { c with leaf = t; path = p } in
+                  let r = to_rope { c with leaf= t; path= p } in
                   create r c.lofs
-            else { c with leaf = Str (s, ofs + 1, len - 1) }
+            else { c with leaf= Str (s, ofs + 1, len - 1) }
           else if i = len - 1 then
-            try next_leaf { c with leaf = Str (s, ofs, len - 1) }
+            try next_leaf { c with leaf= Str (s, ofs, len - 1) }
             with Out_of_bounds (* Top *) ->
-              { c with leaf = Str (s, ofs, len - 1) }
+              { c with leaf= Str (s, ofs, len - 1) }
           else
-            { lofs = c.lofs + i
-            ; rpos = 0
-            ; leaf = Str (s, ofs + i + 1, len - i - 1)
-            ; path = Right (Str (s, ofs, i), c.path)
+            {
+              lofs= c.lofs + i
+            ; rpos= 0
+            ; leaf= Str (s, ofs + i + 1, len - i - 1)
+            ; path= Right (Str (s, ofs, i), c.path)
             }
       | App _ -> assert false
 
@@ -463,11 +466,9 @@ module Make (S : STRING) (C : CONTROL) = struct
       let i = position c in
       let before = sub r 0 i in
       let after = sub r i (length r - i) in
-      print fmt before;
-      Format.fprintf fmt "|";
-      print fmt after
+      print fmt before; Format.fprintf fmt "|"; print fmt after
 
-    let empty = { rpos = 0; lofs = 0; leaf = Str (S.empty, 0, 0); path = Top }
+    let empty = { rpos= 0; lofs= 0; leaf= Str (S.empty, 0, 0); path= Top }
   end
 end
 

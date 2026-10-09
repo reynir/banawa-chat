@@ -1,0 +1,37 @@
+(executable
+ (name main)
+ (modules main message prompt window rope rb rp)
+ (link_flags :standard -cclib "-z solo5-abi=hvt")
+ (libraries
+  cmdliner
+  lru
+  logs.cli
+  logs.fmt
+  fmt.cli
+  re
+  mnet-cli
+  mnottui
+  mnet-ssh
+  mnet-happy-eyeballs
+  mkernel
+  mirage-crypto-rng-mkernel)
+ (foreign_stubs
+  (language c)
+  (names manifest)))
+
+(rule
+ (targets manifest.c)
+ (deps manifest.json)
+ (enabled_if
+  (= %{context_name} "solo5"))
+ (action
+  (run solo5-elftool gen-manifest manifest.json manifest.c)))
+
+(rule
+ (targets manifest.c)
+ (enabled_if
+  (= %{context_name} "default"))
+ (action
+  (write-file manifest.c "")))
+
+(vendored_dirs vendors)

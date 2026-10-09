@@ -1,0 +1,35 @@
+opam-version: "2.0"
+maintainer: "Robur <team@robur.coop>"
+authors: ["Robur <team@robur.coop>"]
+homepage: "https://github.com/reynir/banawa-chat"
+dev-repo: "git+https://github.com/reynir/banawa-chat.git"
+bug-reports: "https://github.com/reynir/banawa/issues"
+license: "MIT"
+
+depends: [
+  "ocaml" {>= "5.3.0"}
+  "dune" {>= "3.0.0"}
+  "bstr"
+  "gmp"
+  "mkernel"
+  "mnet"
+  "ca-certs-nss"
+  "mirage-ptime"
+  "zarith"
+  "awa" {>= "0.7.0"}
+  "mnet-ssh" {>= "0.0.3"}
+  "miou" {>= "0.7.0"}
+  "mnotty" {>= "0.0.2"}
+  "mnottui" {>= "0.0.2"}
+  "tls"
+  "mnet-cli"
+  "mirage-crypto-rng-mkernel"
+  "re"
+]
+build: [
+  [make "all"]
+]
+synopsis: ""
+pin-depends: [
+  [ "zarith.dev" "git+https://github.com/mirage/Zarith.git#df8969d9bb95cffca13e31a615189ab27ada0684" ]
+]
